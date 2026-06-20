@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* ── Pyramid Backstage design tokens ───────────────────────────────────
+   Flat, calm operational UI. Hall colors mirror the four physical halls. */
+@theme {
+  --color-canvas: #f4f4f1;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f7f4;
+  --color-ink: #1b1b19;
+  --color-muted: #6b6b66;
+  --color-faint: #9a9a93;
+  --color-line: rgba(20, 20, 18, 0.1);
+  --color-line-strong: rgba(20, 20, 18, 0.18);
+
+  /* status */
+  --color-ok: #1d9e75;
+  --color-warn: #ba7517;
+  --color-danger: #e24b4a;
+  --color-info: #378add;
+
+  /* the four halls (and their dark text variants for labels) */
+  --color-hall-blue: #e6f1fb;
+  --color-hall-blue-ink: #0c447c;
+  --color-hall-orange: #f5c4b3;
+  --color-hall-orange-ink: #4a1b0c;
+  --color-hall-green: #eaf3de;
+  --color-hall-green-ink: #173404;
+  --color-hall-yellow: #faeeda;
+  --color-hall-yellow-ink: #412402;
+
+  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
