@@ -36,7 +36,7 @@ export default function App() {
   const authReady = useStore((s) => s.authReady);
 
   if (!authReady) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted">Loading…</div>;
+    return <div className="flex min-h-dvh items-center justify-center text-sm text-muted">Loading…</div>;
   }
 
   return (

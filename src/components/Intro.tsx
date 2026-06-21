@@ -68,7 +68,7 @@ export function Intro({ children, onReached }: { children: ReactNode; onReached:
   const tint = reached ? 0.55 : 0.2 + panelOpacity * 0.35;
 
   return (
-    <div style={{ height: reached ? '100vh' : `${SCROLL_VH}vh` }}>
+    <div style={{ height: reached ? '100dvh' : `${SCROLL_VH}vh` }}>
       <div className="fixed inset-0 overflow-hidden bg-[#06090b]">
         <video
           ref={videoRef}
