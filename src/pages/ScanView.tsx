@@ -1,59 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useState } from 'react';
 import { Camera, Check, RotateCcw } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Button, Card } from '@/components/ui/primitives';
 import { QrThumb } from '@/components/ui/QrThumb';
+import { CameraScanner } from '@/components/ui/CameraScanner';
 import { RelocateModal } from '@/components/ui/RelocateModal';
-
-const READER_ID = 'qr-reader';
-
-// qrbox sized off the live viewfinder — a fixed box larger than the camera
-// element throws inside html5-qrcode on narrow phone screens.
-const responsiveQrbox = (w: number, h: number) => {
-  const size = Math.max(140, Math.floor(Math.min(w, h) * 0.72));
-  return { width: size, height: size };
-};
 
 export function ScanView() {
   const { assetUnits, assetTypes, spaces, moveUnit } = useStore();
   const [code, setCode] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const unit = code ? assetUnits.find((u) => u.qrCode === code) ?? null : null;
   const spaceName = (id: string) => spaces.find((s) => s.id === id)?.name ?? id;
-
-  useEffect(() => {
-    if (!scanning) return;
-    let active = true;
-    let scanner: Html5Qrcode | null = null;
-    try {
-      scanner = new Html5Qrcode(READER_ID);
-      scannerRef.current = scanner;
-      scanner
-        .start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: responsiveQrbox },
-          (decoded) => {
-            if (!active) return;
-            active = false;
-            setCode(decoded);
-            setScanning(false);
-            scanner?.stop().catch(() => {});
-          },
-          () => {},
-        )
-        .catch(() => setScanning(false));
-    } catch {
-      setScanning(false);
-    }
-    return () => {
-      active = false;
-      scanner?.stop().catch(() => {});
-    };
-  }, [scanning]);
 
   function move(unitId: string, toSpaceId: string, status: 'deployed' | 'available') {
     const u = assetUnits.find((x) => x.id === unitId);
@@ -77,7 +37,16 @@ export function ScanView() {
       )}
 
       <Card className="p-4">
-        <div id={READER_ID} className="mx-auto mb-3 w-full overflow-hidden rounded-lg" />
+        {scanning && (
+          <CameraScanner
+            className="mx-auto mb-3 w-full overflow-hidden rounded-lg"
+            onDecode={(text) => {
+              setCode(text);
+              setScanning(false);
+            }}
+            onError={() => setScanning(false)}
+          />
+        )}
         <Button variant="primary" className="w-full justify-center" onClick={() => setScanning((s) => !s)}>
           <Camera size={15} /> {scanning ? 'Stop camera' : 'Start camera'}
         </Button>

@@ -1,16 +1,15 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Camera, Check, MapPin, PackageCheck, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { detectConflicts } from '@/domain/conflicts';
 import { conflictSpaceIds } from '@/domain/status';
 import { Badge, Button, Card, SectionLabel, Stat } from '@/components/ui/primitives';
 import { QrThumb } from '@/components/ui/QrThumb';
+import { CameraScanner } from '@/components/ui/CameraScanner';
 import { RelocateModal } from '@/components/ui/RelocateModal';
 
 const Pyramid3D = lazy(() => import('@/components/map/Pyramid3D'));
 const STORE_ID = 'store';
-const READER_ID = 'inv-qr-reader';
 
 export function Inventory() {
   const {
@@ -35,7 +34,6 @@ export function Inventory() {
   const [focusCode, setFocusCode] = useState<string | null>(null);
   const [filterRoom, setFilterRoom] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const spaceName = (id: string) => spaces.find((s) => s.id === id)?.name ?? id;
   const typeLabel = (id: string) => assetTypes.find((t) => t.id === id)?.label ?? id;
@@ -47,39 +45,6 @@ export function Inventory() {
   const inStore = assetUnits.filter((u) => u.locationSpaceId === STORE_ID).length;
 
   const shownUnits = filterRoom ? assetUnits.filter((u) => u.locationSpaceId === filterRoom) : assetUnits;
-
-  // camera scanner (same engine as the dedicated Scan view). qrbox is sized off
-  // the viewfinder — a fixed box bigger than the camera element throws inside
-  // html5-qrcode on narrow phone screens.
-  useEffect(() => {
-    if (!scanning) return;
-    let active = true;
-    let scanner: Html5Qrcode | null = null;
-    try {
-      scanner = new Html5Qrcode(READER_ID);
-      scannerRef.current = scanner;
-      scanner
-        .start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: (w, h) => ({ width: Math.max(140, Math.floor(Math.min(w, h) * 0.72)), height: Math.max(140, Math.floor(Math.min(w, h) * 0.72)) }) },
-          (decoded) => {
-            if (!active) return;
-            active = false;
-            setFocusCode(decoded);
-            setScanning(false);
-            scanner?.stop().catch(() => {});
-          },
-          () => {},
-        )
-        .catch(() => setScanning(false));
-    } catch {
-      setScanning(false);
-    }
-    return () => {
-      active = false;
-      scanner?.stop().catch(() => {});
-    };
-  }, [scanning]);
 
   function move(unitId: string, toSpaceId: string, status: 'deployed' | 'available') {
     moveUnit(unitId, toSpaceId, status);
@@ -155,7 +120,16 @@ export function Inventory() {
         {/* Scan */}
         <Card className="p-4">
           <SectionLabel>Scan a tag</SectionLabel>
-          <div id={READER_ID} className="mx-auto mb-3 w-full overflow-hidden rounded-lg" />
+          {scanning && (
+            <CameraScanner
+              className="mx-auto mb-3 w-full overflow-hidden rounded-lg"
+              onDecode={(text) => {
+                setFocusCode(text);
+                setScanning(false);
+              }}
+              onError={() => setScanning(false)}
+            />
+          )}
           <Button variant="primary" className="w-full justify-center" onClick={() => setScanning((s) => !s)}>
             <Camera size={15} /> {scanning ? 'Stop camera' : 'Start camera'}
           </Button>
