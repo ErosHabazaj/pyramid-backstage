@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, Check, MapPin, PackageCheck, RotateCcw, X } from 'lucide-react';
+import { Camera, Check, MapPin, PackageCheck, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { detectConflicts } from '@/domain/conflicts';
 import { conflictSpaceIds } from '@/domain/status';
 import { Badge, Button, Card, SectionLabel, Stat } from '@/components/ui/primitives';
 import { QrThumb } from '@/components/ui/QrThumb';
+import { RelocateModal } from '@/components/ui/RelocateModal';
 
 const Pyramid3D = lazy(() => import('@/components/map/Pyramid3D'));
 const STORE_ID = 'store';
@@ -47,38 +48,48 @@ export function Inventory() {
 
   const shownUnits = filterRoom ? assetUnits.filter((u) => u.locationSpaceId === filterRoom) : assetUnits;
 
-  // camera scanner (same engine as the dedicated Scan view)
+  // camera scanner (same engine as the dedicated Scan view). qrbox is sized off
+  // the viewfinder — a fixed box bigger than the camera element throws inside
+  // html5-qrcode on narrow phone screens.
   useEffect(() => {
     if (!scanning) return;
-    const scanner = new Html5Qrcode(READER_ID);
-    scannerRef.current = scanner;
     let active = true;
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: 200 },
-        (decoded) => {
-          if (!active) return;
-          active = false;
-          setFocusCode(decoded);
-          setScanning(false);
-          scanner.stop().catch(() => {});
-        },
-        () => {},
-      )
-      .catch(() => setScanning(false));
+    let scanner: Html5Qrcode | null = null;
+    try {
+      scanner = new Html5Qrcode(READER_ID);
+      scannerRef.current = scanner;
+      scanner
+        .start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: (w, h) => ({ width: Math.max(140, Math.floor(Math.min(w, h) * 0.72)), height: Math.max(140, Math.floor(Math.min(w, h) * 0.72)) }) },
+          (decoded) => {
+            if (!active) return;
+            active = false;
+            setFocusCode(decoded);
+            setScanning(false);
+            scanner?.stop().catch(() => {});
+          },
+          () => {},
+        )
+        .catch(() => setScanning(false));
+    } catch {
+      setScanning(false);
+    }
     return () => {
       active = false;
-      scanner.stop().catch(() => {});
+      scanner?.stop().catch(() => {});
     };
   }, [scanning]);
 
-  function move(unitId: string, toSpaceId: string) {
-    const status = toSpaceId === STORE_ID ? 'available' : 'deployed';
+  function move(unitId: string, toSpaceId: string, status: 'deployed' | 'available') {
     moveUnit(unitId, toSpaceId, status);
     const u = assetUnits.find((x) => x.id === unitId);
     setToast(`${u?.qrCode ?? 'Tag'} → ${spaceName(toSpaceId)}`);
     setTimeout(() => setToast(null), 1800);
+  }
+
+  function moveTo(unitId: string, toSpaceId: string) {
+    move(unitId, toSpaceId, toSpaceId === STORE_ID ? 'available' : 'deployed');
   }
 
   return (
@@ -144,69 +155,39 @@ export function Inventory() {
         {/* Scan */}
         <Card className="p-4">
           <SectionLabel>Scan a tag</SectionLabel>
-          {focusUnit ? (
-            <div>
-              <div className="flex items-center gap-3">
-                <QrThumb value={focusUnit.qrCode} size={52} />
-                <div>
-                  <div className="font-mono text-xs text-muted">{focusUnit.qrCode}</div>
-                  <div className="text-base font-medium">
-                    {focusUnit.quantity}× {typeLabel(focusUnit.assetTypeId)}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-faint">
-                    <MapPin size={12} /> {spaceName(focusUnit.locationSpaceId)}
-                  </div>
-                </div>
-                <Badge tone={focusUnit.status === 'deployed' ? 'info' : 'ok'} className="ml-auto">
-                  {focusUnit.status}
-                </Badge>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  defaultValue=""
-                  onChange={(e) => e.target.value && move(focusUnit.id, e.target.value)}
-                  className="flex-1 rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink outline-none focus:border-line-strong"
-                >
-                  <option value="" disabled>
-                    Deploy to…
-                  </option>
-                  {destinations
-                    .filter((s) => s.id !== STORE_ID)
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                </select>
-                <Button onClick={() => move(focusUnit.id, STORE_ID)}>
-                  <RotateCcw size={14} /> Return
-                </Button>
-                <Button onClick={() => setFocusCode(null)}>Done</Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div id={READER_ID} className="mx-auto mb-3 w-full overflow-hidden rounded-lg" />
-              <Button variant="primary" className="w-full justify-center" onClick={() => setScanning((s) => !s)}>
-                <Camera size={15} /> {scanning ? 'Stop camera' : 'Start camera'}
-              </Button>
-              <div className="my-3 text-center text-xs text-faint">or tap a tag to simulate a scan</div>
-              <div className="grid grid-cols-2 gap-2">
-                {assetUnits.slice(0, 6).map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => setFocusCode(u.qrCode)}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-1.5 text-left transition-colors hover:bg-white/5"
-                  >
-                    <QrThumb value={u.qrCode} size={30} />
-                    <span className="font-mono text-xs text-muted">{u.qrCode}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          <div id={READER_ID} className="mx-auto mb-3 w-full overflow-hidden rounded-lg" />
+          <Button variant="primary" className="w-full justify-center" onClick={() => setScanning((s) => !s)}>
+            <Camera size={15} /> {scanning ? 'Stop camera' : 'Start camera'}
+          </Button>
+          <div className="my-3 text-center text-xs text-faint">or tap a tag to simulate a scan</div>
+          <div className="grid grid-cols-2 gap-2">
+            {assetUnits.slice(0, 6).map((u) => (
+              <button
+                key={u.id}
+                onClick={() => setFocusCode(u.qrCode)}
+                className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-1.5 text-left transition-colors hover:bg-surface-2"
+              >
+                <QrThumb value={u.qrCode} size={30} />
+                <span className="font-mono text-xs text-muted">{u.qrCode}</span>
+              </button>
+            ))}
+          </div>
         </Card>
       </div>
+
+      {/* recognized → relocate popup */}
+      {focusUnit && (
+        <RelocateModal
+          unit={focusUnit}
+          assetTypes={assetTypes}
+          spaces={spaces}
+          onMove={(id, to, status) => {
+            move(id, to, status);
+            setFocusCode(null);
+          }}
+          onClose={() => setFocusCode(null)}
+        />
+      )}
 
       {/* Every code */}
       <Card className="p-4">
@@ -244,7 +225,7 @@ export function Inventory() {
               <div className="ml-auto flex items-center gap-2">
                 <select
                   value={u.locationSpaceId}
-                  onChange={(e) => move(u.id, e.target.value)}
+                  onChange={(e) => moveTo(u.id, e.target.value)}
                   className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-line-strong"
                 >
                   {destinations.map((s) => (
@@ -254,7 +235,7 @@ export function Inventory() {
                   ))}
                 </select>
                 {u.locationSpaceId !== STORE_ID && (
-                  <Button onClick={() => move(u.id, STORE_ID)} className="px-2">
+                  <Button onClick={() => moveTo(u.id, STORE_ID)} className="px-2">
                     <PackageCheck size={13} /> Return
                   </Button>
                 )}
