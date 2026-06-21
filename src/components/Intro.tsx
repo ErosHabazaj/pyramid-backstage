@@ -5,8 +5,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 // view by scrubbing the video's currentTime. Near the end the frame blurs
 // and the auth panel (children) fades in over it.
 
-const SCROLL_VH = 200; // total scroll distance — keep short, whole clip maps here
-const REVEAL_START = 0.78; // progress where the panel starts fading in
+const SCROLL_VH = 600; // total scroll distance — longer = slower, smoother scrub
+const REVEAL_START = 0.8; // progress where the panel starts fading in
 const DONE_AT = 0.992;
 
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
@@ -20,25 +20,35 @@ export function Intro({ children, onReached }: { children: ReactNode; onReached:
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let target = 0; // seconds we want the video at, from scroll position
+
     function onScroll() {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        const p = clamp01(max > 0 ? window.scrollY / max : 0);
-        setProgress(p);
-        const v = videoRef.current;
-        if (v && v.duration && !reachedRef.current) {
-          v.currentTime = p * v.duration;
-        }
-        if (p >= DONE_AT && !reachedRef.current) {
-          reachedRef.current = true;
-          setReached(true);
-          onReached();
-        }
-      });
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = clamp01(max > 0 ? window.scrollY / max : 0);
+      setProgress(p);
+      const v = videoRef.current;
+      if (v && v.duration) target = p * v.duration;
+      if (p >= DONE_AT && !reachedRef.current) {
+        reachedRef.current = true;
+        setReached(true);
+        onReached();
+      }
     }
+
+    // ease currentTime toward the scroll target every frame — fills the gaps
+    // between coarse scroll events so the (all-intra) footage glides
+    function tick() {
+      const v = videoRef.current;
+      if (v && v.duration && !reachedRef.current) {
+        const diff = target - v.currentTime;
+        if (Math.abs(diff) > 0.01) v.currentTime += diff * 0.22;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+    rafRef.current = requestAnimationFrame(tick);
     return () => {
       window.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(rafRef.current);
