@@ -1,4 +1,4 @@
-# Pyramid Backstage — project context for Claude Code
+# Theta — project context for Claude Code
 
 Event-operations platform for the **Pyramid of Tirana** — JunctionX Tirana 2026
 hackathon (AADF challenge). Turns a plain-language event request into a

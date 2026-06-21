@@ -1,4 +1,4 @@
--- ── Pyramid Backstage — Supabase schema ──────────────────────────────
+-- ── Theta — Supabase schema ────────────────────────────────────────
 -- Run once in the Supabase SQL editor (Dashboard → SQL → New query).
 -- Enables persistence + realtime for the QR asset-tracking hero.
 

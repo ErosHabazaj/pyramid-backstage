@@ -1,4 +1,4 @@
-# Session handoff — Pyramid Backstage
+# Session handoff — Theta
 
 _Last updated: 2026-06-20. Read alongside [CLAUDE.md](CLAUDE.md) (architecture) and [README.md](README.md) (run/setup)._
 
@@ -35,7 +35,7 @@ overhaul.**
    chart, transport-aware sourcing.
 10. **AI intake** — `parse-intake` Gemini edge function (gemini-2.5-flash,
     thinking off, structured JSON) with offline `naiveParse` fallback.
-11. **Moved to GitHub** — private repo `ErosHabazaj/pyramid-backstage`.
+11. **Moved to GitHub** — private repo `ErosHabazaj/theta`.
 
 ## Key decisions
 - **AI = Gemini, not Claude** — user chose the free tier for cost. Key in Supabase
@@ -75,7 +75,7 @@ overhaul.**
 ## Deploy the Gemini edge function (when ready)
 ```bash
 brew install supabase/tap/supabase
-cd pyramid-backstage
+cd theta
 supabase init                 # ignore "already initialized"
 supabase login
 supabase link --project-ref wkcyfvfvccdejxqvliim
@@ -95,7 +95,7 @@ Then Intake → Analyze shows an "AI parsed" badge.
 8. Close on the CEO quote: emails/spreadsheets/calls replaced by one screen (7).
 
 ## Suggested next-session starting point
-Open Claude Code in the `pyramid-backstage` folder (CLAUDE.md auto-loads). Either:
+Open Claude Code in the `theta` folder (CLAUDE.md auto-loads). Either:
 - **Start the visual overhaul** (the planned task) — bring a reference/vibe; or
 - **Deploy + test the edge function**, then move on; or
 - **Add floor -1** when the sketch arrives.

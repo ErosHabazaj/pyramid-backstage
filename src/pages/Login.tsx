@@ -68,7 +68,7 @@ export function Login() {
             <Logo size={28} />
           </div>
           <div className="leading-tight">
-            <div className="text-base font-medium">Pyramid Backstage</div>
+            <div className="text-base font-medium">Theta</div>
             <div className="text-sm text-muted">{mode === 'login' ? 'Log in to continue' : 'Create your account'}</div>
           </div>
         </div>

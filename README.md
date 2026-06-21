@@ -1,5 +1,4 @@
-# Pyramid Backstage - Theta
-
+# Theta
 Event-operations platform for the Pyramid of Tirana — JunctionX Tirana 2026 (AADF challenge).
 Turns a plain-language event request into a confirmed, conflict-checked, asset-reserved
 operational plan, with a live 2.5D digital twin of the building.

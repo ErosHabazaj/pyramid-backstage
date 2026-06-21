@@ -83,7 +83,7 @@ const tiles = await Promise.all(
 );
 
 const html = `<!doctype html><html><head><meta charset="utf-8">
-<title>Pyramid Backstage — asset QR stickers</title>
+  <title>Theta — asset QR stickers</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; margin: 0; padding: 12mm; color: #111; background: #fff; }
@@ -98,7 +98,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   .home { font-size: 9px; color: #777; margin-top: 0.5mm; }
   @media print { body { padding: 8mm; } @page { margin: 8mm; } }
 </style></head><body>
-  <h1>Pyramid Backstage — asset cart QR stickers</h1>
+  <h1>Theta — asset cart QR stickers</h1>
   <p class="sub">${units.length} tags. Each encodes its plain code (e.g. PB-CHR-01) — scan in the app's Scan asset view to relocate the cart.</p>
   <div class="grid">${tiles.join('')}</div>
 </body></html>`;
