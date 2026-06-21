@@ -7,77 +7,37 @@ import type {
   Reservation,
   Space,
 } from '@/domain/types';
-import { centroid, ringSector } from '@/domain/geometry';
+import { centroid } from '@/domain/geometry';
 
-// ── Seed data — Floor 0 (from the venue sketch) ───────────────────────
-// Circular floor: a ring of perimeter breakout rooms (the "Box" rooms), a
-// large hall (Space 21) on the left, a central hall (Box 14), and two
-// external pods (Space 23 top, Space 30 bottom). Areas are calibrated to
-// the anchor "Space 21 holds ~125 seated"; refine once we have dimensions.
-// Floor -1 is not mapped yet.
-
-const HALL = {
-  blue: { fill: '#e6f1fb', ink: '#0c447c' },
-  orange: { fill: '#f5c4b3', ink: '#4a1b0c' },
-};
+// ── Seed data — Pyramid plan (ids match the 3D model node names) ───────
+// Floor 0 holds only the central "Plug n Play" box; floor -1 holds the
+// main hall, two side halls, the perimeter boxes, and the store. Room ids
+// match the GLB node names (floor-1space1, floor0box1.4, …) so the 3D twin
+// maps 1:1. Real geometry lives in the model; footprints here are
+// placeholders (the 3D scene is the map, not these polygons).
 
 function space(s: Omit<Space, 'anchor'> & { anchor?: Space['anchor'] }): Space {
   return { ...s, anchor: s.anchor ?? centroid(s.footprint) };
 }
 
-// perimeter ring room: annular sector between r30 and r44
-const ring = (a0: number, a1: number, rOuter = 44) => ringSector(a0, a1, 30, rOuter);
+// Placeholder rectangle footprint (laid out in a row; not rendered).
+const rect = (x: number, y: number, w: number, h: number) => [
+  { x, y },
+  { x: x + w, y },
+  { x: x + w, y: y + h },
+  { x, y: y + h },
+];
 
 export const SEED_SPACES: Space[] = [
-  // ── Large hall (left sector) — anchor: ~125 seated ──
-  space({
-    id: 's0-space-21',
-    name: 'Space 21',
-    floor: 0,
-    type: 'main-hall',
-    areaM2: 180,
-    footprint: ringSector(150, 210, 26, 44),
-    features: ['stage', 'av-rig', 'step-free', 'natural-light'],
-    adjacency: ['s0-box-2', 's0-box-9'],
-    nearestStorageId: 's0-box-9',
-    bookable: true,
-    color: HALL.blue,
-    placeholder: true,
-  }),
-
-  // ── Central hall ──
-  space({
-    id: 's0-box-14',
-    name: 'Box 14',
-    floor: 0,
-    type: 'main-hall',
-    areaM2: 115,
-    footprint: [
-      { x: 37, y: 40 },
-      { x: 58, y: 40 },
-      { x: 58, y: 61 },
-      { x: 37, y: 61 },
-    ],
-    features: ['av-rig', 'step-free'],
-    adjacency: ['s0-space-21'],
-    nearestStorageId: 's0-box-9',
-    bookable: true,
-    color: HALL.orange,
-    placeholder: true,
-  }),
-
-  // ── Perimeter ring rooms (small meeting / breakout rooms) ──
-  space({ id: 's0-box-2', name: 'Box 2', floor: 0, type: 'wedge-room', areaM2: 32, footprint: ring(217, 247), features: [], adjacency: ['s0-space-21'], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-7', name: 'Box 7', floor: 0, type: 'wedge-room', areaM2: 28, footprint: ring(287, 313), features: [], adjacency: [], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-4', name: 'Box 4', floor: 0, type: 'wedge-room', areaM2: 28, footprint: ring(317, 343), features: [], adjacency: [], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-5', name: 'Box 5', floor: 0, type: 'wedge-room', areaM2: 44, footprint: ring(347, 377, 46), features: ['natural-light'], adjacency: [], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-a', name: 'Box ?', floor: 0, type: 'wedge-room', areaM2: 24, footprint: ring(28, 52), features: [], adjacency: [], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-8', name: 'Box 8', floor: 0, type: 'wedge-room', areaM2: 26, footprint: ring(58, 84), features: [], adjacency: ['s0-box-9'], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-box-9', name: 'Box 9 · store', floor: 0, type: 'storage', areaM2: 35, footprint: ring(90, 116), features: ['power'], adjacency: ['s0-box-8', 's0-space-21'], bookable: false, placeholder: true }),
-
-  // ── External pods ──
-  space({ id: 's0-space-23', name: 'Space 23', floor: 0, type: 'entrance', areaM2: 45, footprint: ringSector(255, 285, 46, 53), features: ['natural-light', 'step-free'], adjacency: ['s0-box-2', 's0-box-7'], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
-  space({ id: 's0-space-30', name: 'Space 30', floor: 0, type: 'atrium', areaM2: 40, footprint: ringSector(80, 100, 46, 53), features: ['step-free'], adjacency: ['s0-box-8'], nearestStorageId: 's0-box-9', bookable: true, placeholder: true }),
+  space({ id: 'floor-1space1', name: 'Main hall', floor: -1, type: 'main-hall', areaM2: 206, footprint: rect(0, 0, 30, 14), features: ['stage', 'av-rig', 'step-free', 'natural-light'], adjacency: [], nearestStorageId: 'store', note: 'Largest hall — built-in stage and full AV rig. Best for keynotes and galas.', bookable: true }),
+  space({ id: 'floor-1space4', name: 'Side hall 4', floor: -1, type: 'main-hall', areaM2: 190, footprint: rect(34, 0, 20, 18), features: ['step-free'], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor-1space14', name: 'Side hall 14', floor: -1, type: 'main-hall', areaM2: 190, footprint: rect(58, 0, 20, 18), features: ['step-free'], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor-1box1.1', name: 'Box 1.1', floor: -1, type: 'wedge-room', areaM2: 33, footprint: rect(0, 22, 7, 5), features: [], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor-1box1.2', name: 'Box 1.2', floor: -1, type: 'wedge-room', areaM2: 72, footprint: rect(10, 22, 7, 11), features: [], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor-1box1.3', name: 'Box 1.3', floor: -1, type: 'wedge-room', areaM2: 98, footprint: rect(20, 22, 14, 7), features: [], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor-1box1', name: 'Box 1', floor: -1, type: 'wedge-room', areaM2: 90, footprint: rect(38, 22, 15, 6), features: [], adjacency: [], nearestStorageId: 'store', bookable: true }),
+  space({ id: 'floor0box1.4', name: 'Plug n Play', floor: 0, type: 'wedge-room', areaM2: 33, footprint: rect(20, 40, 7, 5), features: ['power'], adjacency: [], nearestStorageId: 'store', note: 'Central plug-and-play box on floor 0.', bookable: true }),
+  space({ id: 'store', name: 'Store', floor: -1, type: 'storage', areaM2: 50, footprint: rect(60, 40, 8, 6), features: ['power'], adjacency: [], bookable: false }),
 ];
 
 export const SEED_ASSET_TYPES: AssetType[] = [
@@ -98,15 +58,15 @@ function buildUnits(): AssetUnit[] {
   const units: AssetUnit[] = [];
   for (let i = 1; i <= 12; i++) {
     const id = String(i).padStart(2, '0');
-    let locationSpaceId = 's0-box-9';
+    let locationSpaceId = 'store';
     let status: AssetUnit['status'] = 'available';
     let reservedForEventId: string | undefined;
     if (i <= 3) {
-      locationSpaceId = 's0-space-21';
+      locationSpaceId = 'floor-1space1';
       status = 'deployed';
       reservedForEventId = 'e1';
     } else if (i === 4) {
-      locationSpaceId = 's0-box-14';
+      locationSpaceId = 'floor-1space4';
       status = 'deployed';
       reservedForEventId = 'e2';
     }
@@ -121,11 +81,11 @@ function buildUnits(): AssetUnit[] {
     });
   }
   units.push(
-    { id: 'u-tbl-01', assetTypeId: 'table-round', qrCode: 'PB-TBL-01', quantity: 12, locationSpaceId: 's0-box-9', status: 'available' },
-    { id: 'u-tbl-02', assetTypeId: 'table-round', qrCode: 'PB-TBL-02', quantity: 12, locationSpaceId: 's0-box-14', status: 'deployed', reservedForEventId: 'e2' },
-    { id: 'u-mic-01', assetTypeId: 'mic-handheld', qrCode: 'PB-MIC-01', quantity: 8, locationSpaceId: 's0-box-9', status: 'available' },
-    { id: 'u-mic-02', assetTypeId: 'mic-lav', qrCode: 'PB-LAV-01', quantity: 6, locationSpaceId: 's0-space-21', status: 'deployed', reservedForEventId: 'e1' },
-    { id: 'u-proj-01', assetTypeId: 'projector', qrCode: 'PB-PRJ-01', quantity: 4, locationSpaceId: 's0-box-9', status: 'available' },
+    { id: 'u-tbl-01', assetTypeId: 'table-round', qrCode: 'PB-TBL-01', quantity: 12, locationSpaceId: 'store', status: 'available' },
+    { id: 'u-tbl-02', assetTypeId: 'table-round', qrCode: 'PB-TBL-02', quantity: 12, locationSpaceId: 'floor-1space4', status: 'deployed', reservedForEventId: 'e2' },
+    { id: 'u-mic-01', assetTypeId: 'mic-handheld', qrCode: 'PB-MIC-01', quantity: 8, locationSpaceId: 'store', status: 'available' },
+    { id: 'u-mic-02', assetTypeId: 'mic-lav', qrCode: 'PB-LAV-01', quantity: 6, locationSpaceId: 'floor-1space1', status: 'deployed', reservedForEventId: 'e1' },
+    { id: 'u-proj-01', assetTypeId: 'projector', qrCode: 'PB-PRJ-01', quantity: 4, locationSpaceId: 'store', status: 'available' },
   );
   return units;
 }
@@ -145,7 +105,7 @@ export const SEED_EVENTS: EventRequest[] = [
     headcount: 120,
     setupStyle: 'theater',
     window: { setupStart: t(12), start: t(14), end: t(18), teardownEnd: t(19) },
-    spaceId: 's0-space-21',
+    spaceId: 'floor-1space1',
     status: 'live',
     assetReqs: [
       { assetTypeId: 'chair', quantity: 120 },
@@ -167,7 +127,7 @@ export const SEED_EVENTS: EventRequest[] = [
     headcount: 100,
     setupStyle: 'standing',
     window: { setupStart: t(14), start: t(15), end: t(21), teardownEnd: t(22) },
-    spaceId: 's0-box-14',
+    spaceId: 'floor-1space4',
     status: 'confirmed',
     assetReqs: [
       { assetTypeId: 'chair', quantity: 30 },
@@ -183,11 +143,53 @@ export const SEED_EVENTS: EventRequest[] = [
     notes: 'Standing reception with stage presentation.',
     createdAt: t(9),
   },
+  // A pending proposal awaiting manager review (no reservation until approved).
+  {
+    id: 'e3',
+    title: 'TEDxTirana Salon',
+    organizer: 'TEDx Volunteers',
+    headcount: 70,
+    setupStyle: 'theater',
+    window: {
+      setupStart: '2026-06-27T16:00:00',
+      start: '2026-06-27T18:00:00',
+      end: '2026-06-27T21:00:00',
+      teardownEnd: '2026-06-27T22:00:00',
+    },
+    spaceId: 'floor-1box1.3',
+    spaceIds: ['floor-1box1.3'],
+    status: 'inquiry',
+    assetReqs: [
+      { assetTypeId: 'chair', quantity: 70 },
+      { assetTypeId: 'mic-handheld', quantity: 2 },
+      { assetTypeId: 'mic-lav', quantity: 2 },
+      { assetTypeId: 'projector', quantity: 1 },
+      { assetTypeId: 'screen', quantity: 1 },
+      { assetTypeId: 'speaker', quantity: 2 },
+      { assetTypeId: 'lectern', quantity: 1 },
+    ],
+    createdAt: t(10),
+    organizerId: 'u-organizer',
+    thread: [
+      {
+        id: 'e3-m1',
+        at: t(10),
+        fromRole: 'organizer',
+        fromName: 'TEDx Volunteers',
+        body: 'Evening salon with 6 speakers. We’d love the central hall if it’s free that night.',
+      },
+    ],
+    attendees: [],
+  },
 ];
 
 // e1 + e2 overlap 14:00–19:00 and together need 13 lavalier mics vs 11
 // available → the engine flags the over-allocation.
-export const SEED_RESERVATIONS: Reservation[] = SEED_EVENTS.map((e) => ({
+// Only confirmed events hold reservations; pending proposals reserve nothing
+// until a manager approves them.
+export const SEED_RESERVATIONS: Reservation[] = SEED_EVENTS.filter(
+  (e) => e.status !== 'inquiry' && e.status !== 'cancelled',
+).map((e) => ({
   id: `r-${e.id}`,
   eventId: e.id,
   spaceId: e.spaceId as string,
@@ -196,12 +198,12 @@ export const SEED_RESERVATIONS: Reservation[] = SEED_EVENTS.map((e) => ({
 }));
 
 export const SEED_TASKS: OpsTask[] = [
-  { id: 'tk1', eventId: 'e1', phase: 'setup', team: 'logistics', title: 'Lay 120 theater chairs in Space 21', dueOffsetMin: -120, done: true },
+  { id: 'tk1', eventId: 'e1', phase: 'setup', team: 'logistics', title: 'Lay 120 theater chairs in Main hall', dueOffsetMin: -120, done: true },
   { id: 'tk2', eventId: 'e1', phase: 'setup', team: 'av', title: 'Rig PA, projector + screen', dueOffsetMin: -150, done: true },
   { id: 'tk3', eventId: 'e1', phase: 'setup', team: 'av', title: 'Sound-check 12 mics', dueOffsetMin: -60, done: false, dependsOn: ['tk2'] },
-  { id: 'tk4', eventId: 'e1', phase: 'setup', team: 'front-desk', title: 'Registration desk at Space 23', dueOffsetMin: -90, done: false },
-  { id: 'tk5', eventId: 'e1', phase: 'teardown', team: 'logistics', title: 'Stack + return chairs to Box 9', dueOffsetMin: 60, done: false },
-  { id: 'tk6', eventId: 'e1', phase: 'teardown', team: 'cleaning', title: 'Clear and reset Space 21', dueOffsetMin: 90, done: false, dependsOn: ['tk5'] },
+  { id: 'tk4', eventId: 'e1', phase: 'setup', team: 'front-desk', title: 'Registration desk at the entrance', dueOffsetMin: -90, done: false },
+  { id: 'tk5', eventId: 'e1', phase: 'teardown', team: 'logistics', title: 'Stack + return chairs to Store', dueOffsetMin: 60, done: false },
+  { id: 'tk6', eventId: 'e1', phase: 'teardown', team: 'cleaning', title: 'Clear and reset Main hall', dueOffsetMin: 90, done: false, dependsOn: ['tk5'] },
 ];
 
 export const SEED_AUDIT: AuditEntry[] = [

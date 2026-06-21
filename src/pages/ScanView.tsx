@@ -5,7 +5,7 @@ import { useStore } from '@/store/useStore';
 import { Badge, Button, Card, SectionLabel } from '@/components/ui/primitives';
 import { QrThumb } from '@/components/ui/QrThumb';
 
-const STORE_ID = 's0-box-9';
+const STORE_ID = 'store';
 const READER_ID = 'qr-reader';
 
 export function ScanView() {
@@ -71,7 +71,7 @@ export function ScanView() {
       </div>
 
       {toast && (
-        <div className="flex items-center gap-2 rounded-lg bg-[#e1f5ee] px-3 py-2 text-sm text-ok">
+        <div className="flex items-center gap-2 rounded-lg bg-[#0d2a22] px-3 py-2 text-sm text-ok">
           <Check size={15} /> {toast}
         </div>
       )}

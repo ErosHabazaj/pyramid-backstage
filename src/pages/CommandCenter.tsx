@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { AlertTriangle, Check, Clock, MapPin, Mic } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { detectConflicts } from '@/domain/conflicts';
 import { resolutionsFor } from '@/domain/resolutions';
-import { conflictSpaceIds, spaceStatusAt, STATUS_LABEL } from '@/domain/status';
+import { conflictSpaceIds, eventSpaceIds, spaceStatusAt, STATUS_LABEL } from '@/domain/status';
 import { capacities, SETUP_LABEL } from '@/domain/capacity';
 import type { TimeWindow } from '@/domain/types';
-import { FloorStack } from '@/components/map/FloorStack';
+const Pyramid3D = lazy(() => import('@/components/map/Pyramid3D'));
 import { Badge, Card, SectionLabel, Stat } from '@/components/ui/primitives';
 import { formatTime } from '@/lib/utils';
 
@@ -51,11 +51,11 @@ export function CommandCenter() {
   const freeHalls = mainHalls.filter(
     (h) => spaceStatusAt(h, events, scrubHour, cSpaceIds) === 'free',
   ).length;
-  const activeEvents = events.filter((e) => e.spaceId && within(scrubHour, e.window)).length;
+  const activeEvents = events.filter((e) => e.spaceId && e.status !== 'inquiry' && e.status !== 'cancelled' && within(scrubHour, e.window)).length;
 
   const reservedAt = (typeId: string) =>
     events
-      .filter((e) => e.spaceId && within(scrubHour, e.window))
+      .filter((e) => e.spaceId && e.status !== 'inquiry' && e.status !== 'cancelled' && within(scrubHour, e.window))
       .reduce(
         (s, e) => s + (e.assetReqs.find((a) => a.assetTypeId === typeId)?.quantity ?? 0),
         0,
@@ -99,7 +99,7 @@ export function CommandCenter() {
       </div>
 
       {toast && (
-        <div className="flex items-center gap-2 rounded-lg bg-[#e1f5ee] px-3 py-2 text-sm text-ok">
+        <div className="flex items-center gap-2 rounded-lg bg-[#0d2a22] px-3 py-2 text-sm text-ok">
           <Check size={15} /> Resolved: {toast}
         </div>
       )}
@@ -122,15 +122,22 @@ export function CommandCenter() {
             <span className="text-sm font-medium">Digital twin</span>
             <span className="text-xs text-faint">tap a space</span>
           </div>
-          <FloorStack
-            spaces={spaces}
-            events={events}
-            assetUnits={assetUnits}
-            scrubHour={scrubHour}
-            conflictSpaceIds={cSpaceIds}
-            selectedSpaceId={selectedSpaceId}
-            onSelect={selectSpace}
-          />
+          <Suspense
+            fallback={
+              <div className="flex h-[340px] w-full items-center justify-center rounded-lg border border-white/10 text-sm text-muted" style={{ background: '#0a1416' }}>
+                Loading 3D twin…
+              </div>
+            }
+          >
+            <Pyramid3D
+              spaces={spaces}
+              events={events}
+              scrubHour={scrubHour}
+              conflictSpaceIds={cSpaceIds}
+              selectedSpaceId={selectedSpaceId}
+              onSelect={selectSpace}
+            />
+          </Suspense>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
             {(['live', 'setup', 'free', 'conflict'] as const).map((s) => (
               <span key={s} className="flex items-center gap-1.5">
@@ -180,7 +187,7 @@ export function CommandCenter() {
                 return (
                   <div
                     key={i}
-                    className={`rounded-lg p-3 ${tone === 'danger' ? 'bg-[#fcebeb]' : 'bg-[#faeeda]'}`}
+                    className={`rounded-lg p-3 ${tone === 'danger' ? 'bg-[#3a1614]' : 'bg-[#33260f]'}`}
                   >
                     <div
                       className={`flex items-center gap-2 text-sm font-medium ${tone === 'danger' ? 'text-danger' : 'text-warn'}`}
@@ -297,16 +304,20 @@ export function CommandCenter() {
           <SectionLabel>Today’s events</SectionLabel>
           <div className="divide-y divide-line">
             {[...events]
+              .filter((e) => e.status !== 'inquiry' && e.status !== 'cancelled')
               .sort((a, b) => a.window.start.localeCompare(b.window.start))
               .map((e) => {
-                const space = spaces.find((s) => s.id === e.spaceId);
+                const spaceLabel = eventSpaceIds(e)
+                  .map((sid) => spaces.find((s) => s.id === sid)?.name)
+                  .filter(Boolean)
+                  .join(' + ');
                 return (
                   <div key={e.id} className="flex items-center justify-between py-2">
                     <div>
                       <div className="text-sm font-medium">{e.title}</div>
                       <div className="flex items-center gap-1.5 text-xs text-muted">
                         <Clock size={12} /> {formatTime(e.window.start)}–{formatTime(e.window.end)} ·{' '}
-                        {space?.name} · {e.headcount} pax
+                        {spaceLabel} · {e.headcount} pax
                       </div>
                     </div>
                     <Badge tone={STATUS_TONE[e.status] ?? 'neutral'}>{e.status}</Badge>

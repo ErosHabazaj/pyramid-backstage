@@ -38,3 +38,52 @@ end $$;
 
 -- The app auto-seeds the cart rows on first load (when the table is empty),
 -- so no manual INSERTs are needed.
+
+-- ── Accounts: profiles (role + name per auth user) ────────────────────
+-- Supabase Auth holds the credentials in auth.users; this table holds the
+-- app-level role and display name, created automatically from the signup
+-- metadata by the trigger below.
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text not null,
+  role text not null check (role in ('manager', 'organizer', 'attendee')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "profiles_read" on public.profiles;
+create policy "profiles_read" on public.profiles
+  for select using (true);
+
+drop policy if exists "profiles_insert_self" on public.profiles;
+create policy "profiles_insert_self" on public.profiles
+  for insert with check (auth.uid() = id);
+
+drop policy if exists "profiles_update_self" on public.profiles;
+create policy "profiles_update_self" on public.profiles
+  for update using (auth.uid() = id);
+
+-- On signup, copy name + role from the user metadata into a profile row.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, name, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'role', 'attendee')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();

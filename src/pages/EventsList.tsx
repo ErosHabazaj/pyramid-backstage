@@ -1,6 +1,7 @@
 import { useStore } from '@/store/useStore';
 import { Badge, Card } from '@/components/ui/primitives';
 import { generateQuote } from '@/domain/pricing';
+import { eventSpaceIds } from '@/domain/status';
 import { formatEuro, formatTime } from '@/lib/utils';
 
 const TONE: Record<string, 'ok' | 'info' | 'warn' | 'neutral'> = {
@@ -27,12 +28,15 @@ export function EventsList() {
         {[...events]
           .sort((a, b) => a.window.start.localeCompare(b.window.start))
           .map((e) => {
-            const space = spaces.find((s) => s.id === e.spaceId);
+            const eventSpaces = eventSpaceIds(e)
+              .map((sid) => spaces.find((s) => s.id === sid))
+              .filter((s): s is NonNullable<typeof s> => Boolean(s));
+            const spaceLabel = eventSpaces.map((s) => s.name).join(' + ');
             const eventTasks = tasks.filter((t) => t.eventId === e.id);
             const done = eventTasks.filter((t) => t.done).length;
-            const quote = space
+            const quote = eventSpaces.length
               ? generateQuote({
-                  space,
+                  spaces: eventSpaces,
                   setupStyle: e.setupStyle,
                   headcount: e.headcount,
                   hours: hoursOf(e.window.start, e.window.end),
@@ -46,7 +50,7 @@ export function EventsList() {
                   <div>
                     <div className="text-base font-medium">{e.title}</div>
                     <div className="text-sm text-muted">
-                      {e.organizer} · {space?.name} · {formatTime(e.window.start)}–{formatTime(e.window.end)} ·{' '}
+                      {e.organizer} · {spaceLabel} · {formatTime(e.window.start)}–{formatTime(e.window.end)} ·{' '}
                       {e.headcount} pax
                     </div>
                   </div>

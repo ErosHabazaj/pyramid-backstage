@@ -4,14 +4,17 @@ import type {
   AssetType,
   AssetUnit,
   AuditEntry,
+  EventMessage,
   EventRequest,
   OpsTask,
   Reservation,
   SetupStyle,
   Space,
   TimeWindow,
+  User,
 } from '@/domain/types';
 import { persistUnit } from '@/lib/assetUnitsRepo';
+import { signOut } from '@/lib/auth';
 import { deriveTasks } from '@/domain/planning';
 import type { ResolutionPlan } from '@/domain/resolutions';
 
@@ -20,11 +23,15 @@ export type RealtimeStatus = 'off' | 'connecting' | 'on';
 export interface NewEventDraft {
   title: string;
   organizer: string;
+  organizerId: string;
   headcount: number;
   setupStyle: SetupStyle;
-  spaceId: string;
+  /** One or more rooms; the first is the primary space. */
+  spaceIds: string[];
   window: TimeWindow;
   assetReqs: AssetRequirement[];
+  /** Optional first message from the organizer to the review team. */
+  message?: string;
 }
 import {
   SEED_ASSET_TYPES,
@@ -45,9 +52,17 @@ interface AppState {
   tasks: OpsTask[];
   audit: AuditEntry[];
 
+  currentUser: User | null;
+  /** False until the Supabase session has been resolved on boot. */
+  authReady: boolean;
   selectedSpaceId: string | null;
   scrubHour: number;
   realtimeStatus: RealtimeStatus;
+
+  // auth
+  setCurrentUser: (user: User | null) => void;
+  setAuthReady: (ready: boolean) => void;
+  logout: () => void;
 
   selectSpace: (id: string | null) => void;
   setScrubHour: (h: number) => void;
@@ -56,8 +71,19 @@ interface AppState {
   /** Generic move: relocate a cart and set its status (deploy / return / transit). */
   moveUnit: (unitId: string, toSpaceId: string, status: AssetUnit['status']) => void;
 
-  /** Confirm a proposal → create event + reservation + tasks + audit. Returns new id. */
-  createEvent: (draft: NewEventDraft) => string;
+  // manager: edit the venue + inventory
+  updateSpace: (id: string, patch: Partial<Space>) => void;
+  updateAssetType: (id: string, patch: Partial<AssetType>) => void;
+
+  /** Organizer submits a proposal → pending event ('inquiry'), no reservation yet. */
+  submitProposal: (draft: NewEventDraft) => string;
+  /** Manager decision on a pending proposal. Approve creates reservations + tasks. */
+  reviewProposal: (eventId: string, decision: 'approve' | 'deny', message?: string) => void;
+  /** Manager replies on the proposal thread without deciding yet. */
+  replyProposal: (eventId: string, body: string) => void;
+  /** Attendee toggles their registration for an event. */
+  toggleRegistration: (eventId: string) => void;
+
   /** Execute a one-click conflict resolution; the engine re-runs automatically. */
   applyResolution: (plan: ResolutionPlan) => void;
 
@@ -77,55 +103,150 @@ export const useStore = create<AppState>((set, get) => ({
   tasks: SEED_TASKS,
   audit: SEED_AUDIT,
 
-  selectedSpaceId: 's0-space-21',
+  currentUser: null,
+  authReady: false,
+  selectedSpaceId: 'floor-1space1',
   scrubHour: 14.5,
   realtimeStatus: 'off',
+
+  setCurrentUser: (user) => set({ currentUser: user }),
+  setAuthReady: (ready) => set({ authReady: ready }),
+  logout: () => {
+    void signOut();
+    set({ currentUser: null });
+  },
 
   selectSpace: (id) => set({ selectedSpaceId: id }),
   setScrubHour: (h) => set({ scrubHour: h }),
   deployUnit: (unitId, toSpaceId) => set((state) => relocate(state, unitId, toSpaceId, 'deployed')),
   moveUnit: (unitId, toSpaceId, status) => set((state) => relocate(state, unitId, toSpaceId, status)),
 
-  createEvent: (draft) => {
+  updateSpace: (id, patch) =>
+    set((state) => ({
+      spaces: state.spaces.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    })),
+
+  updateAssetType: (id, patch) =>
+    set((state) => ({
+      assetTypes: state.assetTypes.map((at) => (at.id === id ? { ...at, ...patch } : at)),
+    })),
+
+  submitProposal: (draft) => {
     const id = `e-${Date.now()}`;
     const createdAt = new Date().toISOString();
-    const space = get().spaces.find((s) => s.id === draft.spaceId);
-    const entrance = get().spaces.find((s) => s.type === 'entrance')?.name;
+    const primaryId = draft.spaceIds[0];
+    const spaceNames = draft.spaceIds
+      .map((sid) => get().spaces.find((s) => s.id === sid)?.name ?? sid)
+      .join(' + ');
 
+    const thread: EventMessage[] = draft.message?.trim()
+      ? [
+          {
+            id: `${id}-m1`,
+            at: createdAt,
+            fromRole: 'organizer',
+            fromName: draft.organizer,
+            body: draft.message.trim(),
+          },
+        ]
+      : [];
+
+    // Pending: no reservation/tasks until a manager approves.
     const event: EventRequest = {
       id,
       title: draft.title,
       organizer: draft.organizer,
+      organizerId: draft.organizerId,
       headcount: draft.headcount,
       setupStyle: draft.setupStyle,
       window: draft.window,
-      spaceId: draft.spaceId,
-      status: 'confirmed',
+      spaceId: primaryId,
+      spaceIds: draft.spaceIds,
+      status: 'inquiry',
       assetReqs: draft.assetReqs,
+      thread,
+      attendees: [],
       createdAt,
     };
-    const reservation: Reservation = {
-      id: `r-${id}`,
-      eventId: id,
-      spaceId: draft.spaceId,
-      window: draft.window,
-      assets: draft.assetReqs,
-    };
-    const tasks = space ? deriveTasks(id, space, draft.setupStyle, draft.headcount, entrance) : [];
     const audit: AuditEntry[] = [
-      { id: `${id}-a1`, at: createdAt, actor: 'Intake', action: 'request.created', detail: `${draft.title} — ${draft.headcount} pax`, eventId: id },
-      { id: `${id}-a2`, at: createdAt, actor: 'system', action: 'space.matched', detail: `Matched ${space?.name ?? draft.spaceId}`, eventId: id },
-      { id: `${id}-a3`, at: createdAt, actor: 'Intake', action: 'event.confirmed', detail: 'Proposal approved → assets reserved', eventId: id },
+      { id: `${id}-a1`, at: createdAt, actor: draft.organizer, action: 'proposal.submitted', detail: `${draft.title} — ${draft.headcount} pax @ ${spaceNames}`, eventId: id },
     ];
 
     set((state) => ({
       events: [...state.events, event],
-      reservations: [...state.reservations, reservation],
-      tasks: [...state.tasks, ...tasks],
       audit: [...state.audit, ...audit],
-      selectedSpaceId: draft.spaceId,
     }));
     return id;
+  },
+
+  reviewProposal: (eventId, decision, message) => {
+    const actor = get().currentUser?.name ?? 'Manager';
+    const at = new Date().toISOString();
+    const event = get().events.find((e) => e.id === eventId);
+    if (!event) return;
+    const spaceIds = event.spaceIds?.length ? event.spaceIds : event.spaceId ? [event.spaceId] : [];
+    const primary = get().spaces.find((s) => s.id === spaceIds[0]);
+    const entrance = get().spaces.find((s) => s.type === 'entrance')?.name;
+
+    const note: EventMessage | null = message?.trim()
+      ? { id: `${eventId}-m${Date.now()}`, at, fromRole: 'manager', fromName: actor, body: message.trim() }
+      : null;
+    const appendThread = (e: EventRequest): EventMessage[] => [...(e.thread ?? []), ...(note ? [note] : [])];
+
+    if (decision === 'approve') {
+      const reservations: Reservation[] = spaceIds.map((sid, idx) => ({
+        id: idx === 0 ? `r-${eventId}` : `r-${eventId}-${idx}`,
+        eventId,
+        spaceId: sid,
+        window: event.window,
+        assets: idx === 0 ? event.assetReqs : [],
+      }));
+      const tasks = primary ? deriveTasks(eventId, primary, event.setupStyle, event.headcount, entrance) : [];
+      set((state) => ({
+        events: state.events.map((e) => (e.id === eventId ? { ...e, status: 'confirmed', thread: appendThread(e) } : e)),
+        reservations: [...state.reservations, ...reservations],
+        tasks: [...state.tasks, ...tasks],
+        audit: [...state.audit, { id: `${eventId}-ap`, at, actor, action: 'proposal.approved', detail: `${event.title} confirmed → assets reserved`, eventId }],
+        selectedSpaceId: spaceIds[0] ?? state.selectedSpaceId,
+      }));
+    } else {
+      set((state) => ({
+        events: state.events.map((e) => (e.id === eventId ? { ...e, status: 'cancelled', thread: appendThread(e) } : e)),
+        audit: [...state.audit, { id: `${eventId}-dn`, at, actor, action: 'proposal.denied', detail: `${event.title} declined`, eventId }],
+      }));
+    }
+  },
+
+  replyProposal: (eventId, body) => {
+    if (!body.trim()) return;
+    const actor = get().currentUser;
+    const msg: EventMessage = {
+      id: `${eventId}-m${Date.now()}`,
+      at: new Date().toISOString(),
+      fromRole: actor?.role ?? 'manager',
+      fromName: actor?.name ?? 'Manager',
+      body: body.trim(),
+    };
+    set((state) => ({
+      events: state.events.map((e) =>
+        e.id === eventId ? { ...e, thread: [...(e.thread ?? []), msg] } : e,
+      ),
+    }));
+  },
+
+  toggleRegistration: (eventId) => {
+    const uid = get().currentUser?.id;
+    if (!uid) return;
+    set((state) => ({
+      events: state.events.map((e) => {
+        if (e.id !== eventId) return e;
+        const attendees = e.attendees ?? [];
+        return {
+          ...e,
+          attendees: attendees.includes(uid) ? attendees.filter((a) => a !== uid) : [...attendees, uid],
+        };
+      }),
+    }));
   },
 
   applyResolution: (plan) =>

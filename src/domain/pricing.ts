@@ -53,7 +53,8 @@ export interface Quote {
 }
 
 export interface QuoteInput {
-  space: Space;
+  /** One or more rooms the event occupies; each is billed for hire. */
+  spaces: Space[];
   setupStyle: SetupStyle;
   headcount: number;
   /** Event duration in hours (excludes setup/teardown). */
@@ -63,20 +64,22 @@ export interface QuoteInput {
 }
 
 export function generateQuote(input: QuoteInput): Quote {
-  const { space, setupStyle, headcount, hours, assetReqs, assetTypes } = input;
+  const { spaces, setupStyle, headcount, hours, assetReqs, assetTypes } = input;
   const lines: QuoteLine[] = [];
 
-  // Space hire
-  const rate = spaceHourlyRate(space);
-  lines.push({
-    label: `${space.name} hire`,
-    detail: `${hours}h · ${setupStyle} setup`,
-    qty: hours,
-    unit: 'h',
-    unitPrice: rate,
-    amount: rate * hours,
-    category: 'space',
-  });
+  // Space hire — one line per room
+  for (const space of spaces) {
+    const rate = spaceHourlyRate(space);
+    lines.push({
+      label: `${space.name} hire`,
+      detail: `${hours}h · ${setupStyle} setup`,
+      qty: hours,
+      unit: 'h',
+      unitPrice: rate,
+      amount: rate * hours,
+      category: 'space',
+    });
+  }
 
   // Asset rental
   for (const req of assetReqs) {

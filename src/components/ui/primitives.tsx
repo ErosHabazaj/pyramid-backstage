@@ -8,11 +8,7 @@ export function Card({
   className?: string;
   children: ReactNode;
 }) {
-  return (
-    <div className={cn('rounded-xl border border-line bg-surface', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('glass rounded-xl', className)}>{children}</div>;
 }
 
 export function Stat({
@@ -25,11 +21,16 @@ export function Stat({
   tone?: 'default' | 'danger';
 }) {
   return (
-    <div className="rounded-lg bg-surface-2 px-4 py-3">
-      <div className={cn('text-xs', tone === 'danger' ? 'text-danger' : 'text-muted')}>
+    <div
+      className={cn(
+        'rounded-lg border-2 px-4 py-3 shadow-[3px_3px_0_0_var(--color-ink)]',
+        tone === 'danger' ? 'border-danger bg-[#fbe2e2]' : 'border-ink bg-surface',
+      )}
+    >
+      <div className={cn('text-xs font-semibold tracking-wide uppercase', tone === 'danger' ? 'text-danger' : 'text-muted')}>
         {label}
       </div>
-      <div className={cn('text-2xl font-medium', tone === 'danger' && 'text-danger')}>
+      <div className={cn('font-display text-2xl font-bold', tone === 'danger' && 'text-danger')}>
         {value}
       </div>
     </div>
@@ -39,15 +40,15 @@ export function Stat({
 type Tone = 'neutral' | 'blue' | 'orange' | 'green' | 'yellow' | 'danger' | 'warn' | 'ok' | 'info';
 
 const TONES: Record<Tone, string> = {
-  neutral: 'bg-surface-2 text-muted',
-  blue: 'bg-hall-blue text-hall-blue-ink',
-  orange: 'bg-hall-orange text-hall-orange-ink',
-  green: 'bg-hall-green text-hall-green-ink',
-  yellow: 'bg-hall-yellow text-hall-yellow-ink',
-  danger: 'bg-[#fcebeb] text-danger',
-  warn: 'bg-[#faeeda] text-warn',
-  ok: 'bg-[#e1f5ee] text-ok',
-  info: 'bg-hall-blue text-info',
+  neutral: 'border-ink/25 bg-surface-2 text-ink',
+  blue: 'border-purple/45 bg-hall-blue text-hall-blue-ink',
+  orange: 'border-orange/45 bg-hall-orange text-hall-orange-ink',
+  green: 'border-olive/55 bg-hall-green text-hall-green-ink',
+  yellow: 'border-[#876a12]/45 bg-hall-yellow text-hall-yellow-ink',
+  danger: 'border-danger/45 bg-[#fbe2e2] text-danger',
+  warn: 'border-warn/45 bg-[#fceada] text-warn',
+  ok: 'border-olive/55 bg-hall-green text-hall-green-ink',
+  info: 'border-orange/45 bg-hall-orange text-info',
 };
 
 export function Badge({
@@ -62,7 +63,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded-md border-[1.5px] px-2 py-0.5 text-xs font-bold',
         TONES[tone],
         className,
       )}
@@ -80,10 +81,10 @@ export function Button({ className, variant = 'default', ...props }: ButtonProps
   return (
     <button
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition active:scale-[0.98] disabled:opacity-50',
+        'inline-flex cursor-pointer items-center gap-1.5 rounded-md border-2 px-3 py-1.5 text-sm font-semibold shadow-[3px_3px_0_0_var(--color-ink)] transition-all hover:-translate-y-px active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_0_var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-purple/60',
         variant === 'primary'
-          ? 'border-transparent bg-ink text-white hover:opacity-90'
-          : 'border-line-strong bg-surface hover:bg-surface-2',
+          ? 'border-ink bg-info text-white hover:bg-orange-ink'
+          : 'border-ink bg-surface text-ink hover:bg-surface-2',
         className,
       )}
       {...props}
@@ -93,7 +94,7 @@ export function Button({ className, variant = 'default', ...props }: ButtonProps
 
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-2 text-xs font-medium tracking-wide text-muted uppercase">
+    <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold tracking-widest text-ink uppercase before:h-3 before:w-1.5 before:rounded-sm before:bg-orange before:content-['']">
       {children}
     </div>
   );

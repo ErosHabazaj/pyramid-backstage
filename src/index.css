@@ -1,34 +1,42 @@
 @import "tailwindcss";
 
 /* ── Pyramid Backstage design tokens ───────────────────────────────────
-   Flat, calm operational UI. Hall colors mirror the four physical halls. */
+   MAXIMALIST theme. Warm paper canvas, near-black ink, the four logo colors
+   (white / olive / orange / purple) used as loud, chunky color blocks with
+   thick ink borders and hard offset shadows. Everything reads from tokens. */
 @theme {
-  --color-canvas: #f4f4f1;
-  --color-surface: #ffffff;
-  --color-surface-2: #f7f7f4;
-  --color-ink: #1b1b19;
-  --color-muted: #6b6b66;
-  --color-faint: #9a9a93;
-  --color-line: rgba(20, 20, 18, 0.1);
-  --color-line-strong: rgba(20, 20, 18, 0.18);
+  --color-canvas: #fbf7ef;       /* warm paper */
+  --color-surface: #ffffff;      /* card / panel */
+  --color-surface-2: #fff4e6;    /* tinted lift */
+  --color-ink: #1a1512;          /* near-black */
+  --color-muted: #6b6258;
+  --color-faint: #9a9082;
+  --color-line: rgba(26, 21, 18, 0.16);
+  --color-line-strong: #1a1512;
 
-  /* status */
-  --color-ok: #1d9e75;
-  --color-warn: #ba7517;
-  --color-danger: #e24b4a;
-  --color-info: #378add;
+  /* the four brand colors + darkened ink variants for text on white */
+  --color-olive: #9caf2c;        --color-olive-ink: #54670f;
+  --color-orange: #e8531e;       --color-orange-ink: #b23a10;
+  --color-purple: #8b5cc4;       --color-purple-ink: #5e2e9e;
 
-  /* the four halls (and their dark text variants for labels) */
-  --color-hall-blue: #e6f1fb;
-  --color-hall-blue-ink: #0c447c;
-  --color-hall-orange: #f5c4b3;
-  --color-hall-orange-ink: #4a1b0c;
-  --color-hall-green: #eaf3de;
-  --color-hall-green-ink: #173404;
-  --color-hall-yellow: #faeeda;
-  --color-hall-yellow-ink: #412402;
+  /* legacy aliases kept on-brand */
+  --color-teal: #8b5cc4;
+  --color-teal-deep: #54670f;
 
-  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  /* status — mapped onto the brand where it stays semantic */
+  --color-ok: #5c7414;           /* olive (live / good) */
+  --color-warn: #c2691b;         /* burnt orange */
+  --color-danger: #c81e1e;       /* functional red (destructive only) */
+  --color-info: #e8531e;         /* orange — primary accent / CTA */
+
+  /* badge tints (light bg + dark ink) */
+  --color-hall-blue: #efe6fb;        --color-hall-blue-ink: #5e2e9e;
+  --color-hall-orange: #fce7dc;      --color-hall-orange-ink: #b23a10;
+  --color-hall-green: #eef4d6;       --color-hall-green-ink: #54670f;
+  --color-hall-yellow: #fbf0ce;      --color-hall-yellow-ink: #876a12;
+
+  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
 }
 
@@ -44,11 +52,67 @@ body,
 }
 
 body {
-  background: var(--color-canvas);
+  background-color: var(--color-canvas);
+  /* loud brand blobs + a chunky pyramid pattern stamped over the paper */
+  background-image:
+    radial-gradient(720px 560px at 8% -6%, rgba(139, 92, 196, 0.16), transparent 55%),
+    radial-gradient(760px 600px at 100% -4%, rgba(232, 83, 30, 0.16), transparent 52%),
+    radial-gradient(820px 680px at 50% 116%, rgba(156, 175, 44, 0.18), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Cpath d='M27 8 L46 46 L8 46 Z' fill='none' stroke='%231a1512' stroke-opacity='0.05' stroke-width='2'/%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 54px 54px;
+  background-attachment: fixed, fixed, fixed, fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* page + section titles take the bold display face — maximalist voice */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ── Maximalist surfaces ──────────────────────────────────────────────
+   `.glass` is reused by Card / sidebar — now a chunky white panel with a
+   thick ink border and a hard offset shadow. `.glass-strong` pops purple. */
+.glass {
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  box-shadow: 5px 5px 0 0 var(--color-ink);
+}
+.glass-strong {
+  background: var(--color-surface);
+  border: 2.5px solid var(--color-ink);
+  box-shadow: 10px 10px 0 0 var(--color-purple);
+}
+
+::selection {
+  background: rgba(232, 83, 30, 0.28);
+}
+
+/* themed scrollbars + range slider on light */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink);
+  border: 3px solid var(--color-canvas);
+  border-radius: 8px;
+}
+input[type="range"] {
+  accent-color: var(--color-info);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

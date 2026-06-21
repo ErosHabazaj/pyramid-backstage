@@ -28,3 +28,28 @@ export function formatEuro(n: number): string {
     maximumFractionDigits: 0,
   }).format(n);
 }
+
+// ── Date helpers (local 'YYYY-MM-DD' keys, timezone-safe) ─────────────
+export function ymd(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
+}
+
+export function monthLabel(d: Date): string {
+  return d.toLocaleDateString([], { month: 'long', year: 'numeric' });
+}
+
+/** '2026-06-27' → 'Sat 27 Jun 2026' */
+export function prettyDate(key: string): string {
+  const [y, m, day] = key.split('-').map(Number);
+  return new Date(y, m - 1, day).toLocaleDateString([], {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}

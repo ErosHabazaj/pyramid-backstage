@@ -5,6 +5,28 @@
 
 export type FloorId = -1 | 0;
 
+// ── Accounts & roles ─────────────────────────────────────────────────
+// Three roles, each with its own slice of the platform:
+//   manager   — Pyramid staff: edits spaces/inventory, reviews proposals
+//   organizer — event handler: browses rooms, proposes events
+//   attendee  — public: browses the event calendar, registers to attend
+export type Role = 'manager' | 'organizer' | 'attendee';
+
+export interface User {
+  id: string;
+  name: string;
+  role: Role;
+}
+
+/** A message on a proposal thread (organizer ⇄ manager). */
+export interface EventMessage {
+  id: string;
+  at: string;
+  fromRole: Role;
+  fromName: string;
+  body: string;
+}
+
 export type SpaceType =
   | 'main-hall'
   | 'wedge-room'
@@ -43,6 +65,8 @@ export interface Space {
   adjacency: string[];
   /** id of nearest storage space, for transport-aware allocation. */
   nearestStorageId?: string;
+  /** Free-text info shown to organizers; editable by managers. */
+  note?: string;
   bookable: boolean;
   /** Brand fill + ink for halls; undefined spaces fall back to neutral. */
   color?: { fill: string; ink: string };
@@ -118,11 +142,20 @@ export interface EventRequest {
   headcount: number;
   setupStyle: SetupStyle;
   window: TimeWindow;
+  /** Primary room (kept for everything keyed on a single space). */
   spaceId?: string;
+  /** All rooms the event occupies. `spaceId` is `spaceIds[0]`. */
+  spaceIds?: string[];
   status: EventStatus;
   assetReqs: AssetRequirement[];
   notes?: string;
   createdAt: string;
+  /** Organizer who proposed the event (role = 'organizer'). */
+  organizerId?: string;
+  /** Review conversation between the organizer and the manager. */
+  thread?: EventMessage[];
+  /** Attendee user ids who have registered (role = 'attendee'). */
+  attendees?: string[];
 }
 
 export interface Reservation {
