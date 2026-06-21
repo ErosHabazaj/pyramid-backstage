@@ -1,4 +1,4 @@
-# Pyramid Backstage
+# Pyramid Backstage - Theta
 
 Event-operations platform for the Pyramid of Tirana — JunctionX Tirana 2026 (AADF challenge).
 Turns a plain-language event request into a confirmed, conflict-checked, asset-reserved
@@ -89,4 +89,6 @@ Define a room once; the map, the matching engine and the capacity math stay in s
 - [ ] Trace floor -1 from the next sketch
 - [ ] Optionally move proposal prose to the same Edge Function pattern
 - [ ] Persist events/reservations to Supabase (same pattern as units)
+
+## Work of Folk Valley (Eros Habazaj, Davian Habazaj, Alons Fejzo
 ```
