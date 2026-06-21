@@ -30,9 +30,9 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-ink/50" />
+      <button type="button" aria-label="Close" onClick={onClose} className="anim-fade absolute inset-0 bg-ink/50" />
       <div
-        className="relative z-10 max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-t-2xl border-2 border-ink bg-surface shadow-[6px_6px_0_0_var(--color-ink)] sm:rounded-2xl"
+        className="anim-pop relative z-10 max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-t-2xl border-2 border-ink bg-surface shadow-[6px_6px_0_0_var(--color-ink)] sm:rounded-2xl"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="sticky top-0 flex items-center justify-between border-b-2 border-ink bg-surface px-4 py-3">

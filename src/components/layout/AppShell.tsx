@@ -203,10 +203,10 @@ export function AppShell() {
             type="button"
             aria-label="Close menu"
             onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-ink/50"
+            className="anim-fade absolute inset-0 bg-ink/50"
           />
           <div
-            className="absolute top-0 right-0 flex h-full w-[82%] max-w-xs flex-col border-l-2 border-ink bg-surface shadow-[-8px_0_0_0_rgba(26,21,18,0.12)]"
+            className="anim-slide-in absolute top-0 right-0 flex h-full w-[82%] max-w-xs flex-col border-l-2 border-ink bg-surface shadow-[-8px_0_0_0_rgba(26,21,18,0.12)]"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
             <div className="flex items-center justify-between px-4 py-4">

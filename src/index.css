@@ -93,6 +93,28 @@ h3 {
   box-shadow: 10px 10px 0 0 var(--color-purple);
 }
 
+/* ── Motion ───────────────────────────────────────────────────────── */
+@keyframes pb-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pb-pop {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pb-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pb-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+.anim-rise { animation: pb-rise 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-pop { animation: pb-pop 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-fade { animation: pb-fade 0.18s ease-out both; }
+.anim-slide-in { animation: pb-slide-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
 ::selection {
   background: rgba(232, 83, 30, 0.28);
 }
