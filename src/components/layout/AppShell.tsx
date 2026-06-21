@@ -84,8 +84,8 @@ export function AppShell() {
         <Logo size={26} />
       </div>
       <div className="leading-tight">
-        <div className="font-display text-base font-bold">Pyramid</div>
-        <div className="text-[11px] font-semibold tracking-widest text-orange uppercase">Backstage</div>
+        <div className="font-display text-base font-bold">Theta</div>
+        <div className="text-[11px] font-semibold tracking-widest text-orange uppercase">Event ops</div>
       </div>
     </div>
   );
